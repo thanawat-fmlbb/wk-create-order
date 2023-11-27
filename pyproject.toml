@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "create_order"
+version = "0.1.0"
+description = ""
+authors = ["Nawat Ngerncham <67263644+nngerncham@users.noreply.github.com>"]
+license = "MIT"
+packages = [
+    { include = "src", from = "." },
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+sqlmodel = "^0.0.12"
+python-dotenv = "^1.0.0"
+celery = "^5.3.6"
+redis = "^5.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

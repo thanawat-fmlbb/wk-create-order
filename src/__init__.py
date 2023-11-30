@@ -10,3 +10,8 @@ app = Celery("create_order_service",
              broker=f"redis://{REDIS_HOST}:{REDIS_PORT}/0",
              backend=f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
              broker_connection_retry_on_startup=True)
+
+result_collector = Celery("create_order_service",
+             broker=f"redis://{REDIS_HOST}:{REDIS_PORT}/4",
+             backend=f"redis://{REDIS_HOST}:{REDIS_PORT}/4",
+             broker_connection_retry_on_startup=True)

@@ -13,7 +13,7 @@ def get_engine():
     db_password = os.environ.get("DATABASE_PASSWORD", "password")
     postgres_url = (f"postgresql://"
                     f"{db_username}:{db_password}@"
-                    f"{db_host}:{db_port}/payment")
+                    f"{db_host}:{db_port}/createorder")
     engine = create_engine(postgres_url, echo=True)
     return engine
 

@@ -1,9 +1,8 @@
 import os
-
+from dotenv import load_dotenv
 from celery import Celery
-from src.database.engine import create_db_and_tables
 
-create_db_and_tables()
+load_dotenv()
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = os.environ.get("REDIS_PORT", "6381")
 app = Celery("create_order_service",
@@ -15,3 +14,7 @@ result_collector = Celery("create_order_service",
              broker=f"redis://{REDIS_HOST}:{REDIS_PORT}/4",
              backend=f"redis://{REDIS_HOST}:{REDIS_PORT}/4",
              broker_connection_retry_on_startup=True)
+
+from .database.models import OrderInfo
+from .database.engine import create_db_and_tables
+create_db_and_tables()

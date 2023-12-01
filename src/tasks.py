@@ -3,8 +3,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from celery.exceptions import SoftTimeLimitExceeded
 
 from src import app, result_collector
+from src.database.models import OrderInfo 
 from src.database.engine import get_engine
-from src.database.models import OrderInfo
 
 RESULT_TASK_NAME = "wk-irs.tasks.send_result"
 
@@ -27,16 +27,14 @@ def create_order(**kwargs) -> bool:
             order = OrderInfo(main_id=main_id, user_id=user_id, item_id=item_id, quantity=quantity, is_valid=True)
             session.add(order)
             session.commit()
-            # return True
         except SQLAlchemyError as e:
             print(e)
             order = OrderInfo(main_id=main_id, user_id=user_id, item_id=item_id, quantity=quantity, is_valid=False)
             session.add(order)
             session.commit()
-            # return False
         except SoftTimeLimitExceeded:
             success = False
-            kwargs["error"] = "out_of_stock"
+            kwargs["error"] = "timeout"
         except Exception as e:
             print(e)
             success = False
@@ -51,8 +49,9 @@ def create_order(**kwargs) -> bool:
         result_collector.send_task(
             RESULT_TASK_NAME,
             kwargs=result_object,
-            task_id=main_id
+            task_id=str(main_id)
         )
+        return success
 
 
 @app.task(name='wk-create-order.tasks.rollback')
@@ -68,9 +67,8 @@ def rollback_order(**kwargs) -> bool:
 
             # commit
             session.commit()
-        
     except SQLAlchemyError as e:
-        return False
+        kwargs["error"] = str(e)
     
     result_object = {
         "main_id": main_id,
@@ -81,7 +79,7 @@ def rollback_order(**kwargs) -> bool:
     result_collector.send_task(
         RESULT_TASK_NAME,
         kwargs=result_object,
-        task_id=main_id
+        task_id=str(main_id)
     )
     return True
 
@@ -110,7 +108,7 @@ def test(self, **kwargs):
     result_collector.send_task(
         RESULT_TASK_NAME,
         kwargs=result_object,
-        task_id=self.request.id
+        task_id=str(self.request.id)
     )
     return result_object
 

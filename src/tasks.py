@@ -62,31 +62,35 @@ def create_order(**kwargs) -> bool:
 
 @app.task(name='wk-create-order.tasks.rollback')
 def rollback_order(**kwargs) -> bool:
-    main_id = kwargs.get('main_id', None)
-    engine = get_engine()
-    try:
-        with Session(engine) as session:
-            # gets corresponding payment info and user
-            statement = select(OrderInfo).where(OrderInfo.main_id == main_id)
-            order_info = session.exec(statement).one()
-            order_info.is_valid = False
+    celery.current_task.request.headers.get("traceparent")
+    tracer = trace.get_tracer(__name__)
+    ctx = propagate.extract(celery.current_task.request.headers)
+    with tracer.start_as_current_span("rollback_order", context=ctx):
+        main_id = kwargs.get('main_id', None)
+        engine = get_engine()
+        try:
+            with Session(engine) as session:
+                # gets corresponding payment info and user
+                statement = select(OrderInfo).where(OrderInfo.main_id == main_id)
+                order_info = session.exec(statement).one()
+                order_info.is_valid = False
 
-            # commit
-            session.commit()
-    except SQLAlchemyError as e:
-        kwargs["error"] = str(e)
+                # commit
+                session.commit()
+        except SQLAlchemyError as e:
+            kwargs["error"] = str(e)
 
-    result_object = {
-        "main_id": main_id,
-        "success": False,  # this is for triggering the rollback on the backend
-        "service_name": "create_order",
-        "payload": kwargs,
-    }
-    result_collector.send_task(
-        RESULT_TASK_NAME,
-        kwargs=result_object,
-        task_id=str(main_id)
-    )
+        result_object = {
+            "main_id": main_id,
+            "success": False,  # this is for triggering the rollback on the backend
+            "service_name": "create_order",
+            "payload": kwargs,
+        }
+        result_collector.send_task(
+            RESULT_TASK_NAME,
+            kwargs=result_object,
+            task_id=str(main_id)
+        )
     return True
 
 
